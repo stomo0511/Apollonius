@@ -13,32 +13,35 @@
 
 #define EPS 0.000001  // 停止判定
 #define MAXIT 30      // 最大反復回数
+#define N 5         // 多項式の次数
 
-// Zeros
-std::vector< std::complex<double> > Zrs {
-	std::complex<double> (  0.0,  1.0 ),
-	std::complex<double> (  1.0,  2.0 ),
-	std::complex<double> ( -1.0,  2.0 ),
-	std::complex<double> (  3.0, -3.0 ),
-	std::complex<double> ( -3.0, -3.0 )
-};
+// Set Zeros
+template <typename T>
+void Set_Zeros( std::vector< std::complex<T> > &Zrs )
+{
+	Zrs[0] = std::complex<T> (  0.0,  1.0 );
+	Zrs[1] = std::complex<T> (  1.0,  2.0 );
+	Zrs[2] = std::complex<T> ( -1.0,  2.0 );
+	Zrs[3] = std::complex<T> (  3.0, -3.0 );
+	Zrs[4] = std::complex<T> ( -3.0, -3.0 );
+}
 
-// Coefficients
-std::vector< std::complex<double> > Cef {
-	std::complex<double> (  1.0,   0.0 ),  // z^5
-	std::complex<double> (  0.0,   1.0 ),  // Z^4
-	std::complex<double> (  3.0,   0.0 ),  // Z^3
-	std::complex<double> (  0.0,  41.0 ),  // z^2
-	std::complex<double> (132.0,   0.0 ),  // z^1
-	std::complex<double> (  0.0, -90.0 )   // z^0
-};
-
-std::vector<double> Gam( Zrs.size() );  // Γ
-std::vector<double> Alp( Zrs.size() );  // α
+// Set Coefficients
+template <typename T>
+void Set_Coef( std::vector< std::complex<T> > &Cef )
+{
+	Cef[0] = std::complex<T> (  1.0,   0.0 );    // z^5
+	Cef[1] = std::complex<T> (  0.0,   1.0 );    // Z^4
+	Cef[2] = std::complex<T> (  3.0,   0.0 );    // Z^3
+	Cef[3] = std::complex<T> (  0.0,  41.0 );   // z^2
+	Cef[4] = std::complex<T> (132.0,   0.0 );  // z^1
+	Cef[5] = std::complex<T> (  0.0, -90.0 );   // z^0
+}
 
 // Horner method for polynomial
-template<typename T> void Horner( std::vector< std::complex<T> > cf, std::complex<T> z,
-					std::complex<T> &vf, std::complex<T> &df )
+template<typename T>
+void Horner( const std::vector< std::complex<T> > Cef, const std::complex<T> z,
+		std::complex<T> &vf, std::complex<T> &df )
 {
 	vf = Cef[0];
 	df = std::complex<T> (0.0,0.0);
@@ -53,7 +56,9 @@ template<typename T> void Horner( std::vector< std::complex<T> > cf, std::comple
 }
 
 // Nourein subfunction
-template <typename T> std::complex<T> vc( const int K, std::complex<T> z )
+template <typename T>
+std::complex<T> vc( const int P, const std::vector< std::complex<T> > Zrs, const std::vector< std::complex<T> > Cef,
+		const std::complex<T> z )
 {
 	std::complex<T> tmp = std::complex<T> (0.0,0.0);;
 
@@ -62,15 +67,17 @@ template <typename T> std::complex<T> vc( const int K, std::complex<T> z )
 		std::complex<T> vf, df;
 		Horner( Cef, *itr, vf, df );
 
-		// tmp *= (1/f'(z_i) (-1 / (z_i -z)^{K+1})
-		tmp += ( (T)(1.0) / df )*( (T)(-1.0) / pow( (*itr - z), (T)(K+1) ));
+		// tmp *= (1/f'(z_i) (-1 / (z_i -z)^{P+1})
+		tmp += ( (T)(1.0) / df )*( (T)(-1.0) / pow( (*itr - z), (T)(P+1) ));
 	}
 	return tmp;
 }
 
-template <typename T> std::complex<T> Nourein( const int p, std::complex<T> z, int &count, T &er )
+template <typename T>
+std::complex<T> Nourein( const int P, const std::vector< std::complex<T> > Zrs, const std::vector< std::complex<T> > Cef,
+		const std::complex<T> z, int &count, T &er )
 {
-	assert(p>=2);
+	assert(P>=2);
 
 	std::complex<T> vf, df;
 	Horner( Cef, z, vf, df );
@@ -78,7 +85,7 @@ template <typename T> std::complex<T> Nourein( const int p, std::complex<T> z, i
 
 	while ((count < MAXIT) && (abs(vf) > EPS))
 	{
-		z += vc(p-2,z) / vc(p-1,z);
+		z += vc(P-2,z) / vc(P-1,z);
 		Horner( Cef, z, vf, df );
 		count++;
 	}
@@ -87,7 +94,8 @@ template <typename T> std::complex<T> Nourein( const int p, std::complex<T> z, i
 	return z;
 }
 
-template <typename T> void SetGamma( std::vector<T> &Gam )
+template <typename T>
+void SetGamma( const std::vector< std::complex<T> > Zrs, const std::vector< std::complex<T> > Cef, std::vector<T> &Gam )
 {
 	for (int i=0; i<Zrs.size(); i++)
 	{
@@ -111,31 +119,34 @@ template <typename T> void SetGamma( std::vector<T> &Gam )
 	}
 }
 
-template <typename T> T fAlp( const int p, const T Gamma, T alp )
+template <typename T>
+T fAlp( const int P,  const std::vector< std::complex<T> > Zrs, const T Gamma, const T alp )
 {
-	assert(p>=2);
+	assert(P>=2);
 
-	return ((T)(Zrs.size()) -1.0) * Gamma * pow(alp,(T)(p-1)) - (1.0-alp)/(1.0+3.0*alp);
+	return ((T)(Zrs.size()) -1.0) * Gamma * pow(alp,(T)(P-1)) - (1.0-alp)/(1.0+3.0*alp);
 }
 
-template <typename T> T dAlp( const int p, const T Gamma, T alp )
+template <typename T>
+T dAlp( const int P,  const std::vector< std::complex<T> > Zrs, const T Gamma, const T alp )
 {
-	assert(p>=2);
+	assert(P>=2);
 
-	T tmp = ((T)(Zrs.size()) -1.0) * Gamma * ((T)(p) -1.0) * pow(alp,(T)(p-2));
-	return  tmp + 4.0/(1.0+6.0*alp+9.0*alp*alp);
+	T tmp = ((T)(Zrs.size()) -1.0) * Gamma * ((T)(P) -1.0) * pow(alp,(T)(P-2));
+	return  tmp + 4.0/(1.0 + 6.0*alp + 9.0*alp*alp);
 }
 
-template <typename T> void GetAlpha( const int P, const std::vector<T> Gam, std::vector<T> &Alp )
+template <typename T>
+void GetAlpha( const int P, const std::vector< std::complex<T> > Zrs, const std::vector<T> Gam, std::vector<T> &Alp )
 {
 	for (int i=0; i<Zrs.size(); i++)
 	{
 		T alp = (T)(1.0);
 		int count = 0;
 
-		while ((count < MAXIT) && (abs(fAlp(P,Gam[i],alp)) > EPS))
+		while ((count < MAXIT) && (abs(fAlp(P,Zrs,Gam[i],alp)) > EPS))
 		{
-			alp -= fAlp(P,Gam[i],alp) / dAlp(P,Gam[i],alp);
+			alp -= fAlp(P,Zrs,Gam[i],alp) / dAlp(P,Zrs,Gam[i],alp);
 			count++;
 		}
 		if (count == MAXIT)
@@ -149,21 +160,31 @@ template <typename T> void GetAlpha( const int P, const std::vector<T> Gam, std:
 
 int main(int argc, char *argv[])
 {
-	int P;  // Order of Nourein method
+	if (argc <2)
+	{
+		std::cerr << "Usage: a.out [order of Nourein's method]\n";
+		exit (EXIT_FAILURE);
+	}
+	const int P = atoi(argv[1]);    // Order of Nourein method
 
-	SetGamma( Gam );       // Γ
+	std::vector< std::complex<double> > Zrs( N );       // Zeros
+	std::vector< std::complex<double> > Cef( N+1);   // Coefficients
 
-    for(int P=2; P<=128; P++)
-    {
-    	GetAlpha( P, Gam, Alp );
+	Set_Zeros( Zrs );
+	Set_Coef( Cef );
 
-    	std::cout << P << ", ";
-    	for(auto itr = Alp.begin(); itr < Alp.end(); itr++ )
-    	{
-    		std::cout << *itr << ", ";
-    	}
-    	std::cout << std::endl;
-    }
+	std::vector<double> Gam( N );  // Γ
+	std::vector<double> Alp( N );    // α
+
+	SetGamma( Zrs, Cef, Gam );
+	GetAlpha( P, Zrs, Gam, Alp );
+
+	std::cout << P << ", ";
+	for(auto itr = Alp.begin(); itr < Alp.end(); itr++ )
+	{
+		std::cout << *itr << ", ";
+	}
+	std::cout << std::endl;
 
 	return EXIT_SUCCESS;
 }
