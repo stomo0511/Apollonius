@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
+#include <cmath>
 #include <vector>
 #include <complex>
 
@@ -30,12 +31,12 @@ void Set_Zeros( std::vector< std::complex<T> > &Zrs )
 template <typename T>
 void Set_Coef( std::vector< std::complex<T> > &Cef )
 {
-	Cef[0] = std::complex<T> (  1.0,   0.0 );    // z^5
-	Cef[1] = std::complex<T> (  0.0,   1.0 );    // Z^4
-	Cef[2] = std::complex<T> (  3.0,   0.0 );    // Z^3
-	Cef[3] = std::complex<T> (  0.0,  41.0 );   // z^2
+	Cef[0] = std::complex<T> (  1.0,   0.0 );  // z^5
+	Cef[1] = std::complex<T> (  0.0,   1.0 );  // Z^4
+	Cef[2] = std::complex<T> (  3.0,   0.0 );  // Z^3
+	Cef[3] = std::complex<T> (  0.0,  41.0 );  // z^2
 	Cef[4] = std::complex<T> (132.0,   0.0 );  // z^1
-	Cef[5] = std::complex<T> (  0.0, -90.0 );   // z^0
+	Cef[5] = std::complex<T> (  0.0, -90.0 );  // z^0
 }
 
 // Horner method for polynomial
@@ -182,9 +183,20 @@ int main(int argc, char *argv[])
 	std::cout << P << ", ";
 	for(auto itr = Alp.begin(); itr < Alp.end(); itr++ )
 	{
-		std::cout << *itr << ", ";
+//		std::cout << *itr << ", ";
+		std::cout << (1.0 - (*itr)) / (log((double)(P)) / (double)(P) ) << ", ";
 	}
 	std::cout << std::endl;
 
+	for (int p=2; p<=1024; p=p*2)
+	{
+		GetAlpha( p, Zrs, Gam, Alp );
+		std::cout << p << ", ";
+		for(auto itr = Alp.begin(); itr < Alp.end(); itr++ )
+		{
+			std::cout << (1.0 - (*itr)) / (log((double)(P)) / (double)(P) ) << ", ";
+		}
+		std::cout << std::endl;
+	}
 	return EXIT_SUCCESS;
 }
