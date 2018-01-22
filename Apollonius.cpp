@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 		std::cout << p << ", ";
 		for(auto itr = Alp.begin(); itr < Alp.end(); itr++ )
 		{
-			std::cout << (1.0 - (*itr)) / (log((double)(P)) / (double)(P) ) << ", ";
+			std::cout << (1.0 - (*itr)) / (log((double)(p)) / (double)(p) ) << ", ";
 		}
 		std::cout << std::endl;
 	}
